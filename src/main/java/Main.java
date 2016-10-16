@@ -23,7 +23,11 @@ public class Main extends JFrame {
             e.printStackTrace();
         }
 
-        for(ImageBlock block: ImageDevider.devidePicture(image, Constants.BLOCK_WIDTH, Constants.BLOCK_HEIGHT)) {
+        List<ImageBlock> blocks = ImageDevider.devidePicture(image, Constants.BLOCK_WIDTH, Constants.BLOCK_HEIGHT);
+
+
+        for(ImageBlock block: blocks) {
+            block.compress();
             addeNewJLabel(block);
         }
         setVisible(true);
