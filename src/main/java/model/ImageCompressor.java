@@ -1,41 +1,65 @@
 package model;
 
-import config.Consts;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static java.awt.image.BufferedImage.TYPE_INT_ARGB_PRE;
 
 /**
  * Created by a.kalenkevich on 21.10.2016.
  */
 public class ImageCompressor {
 
+    private static final int MAX_THREAD_LENGTH = 10;
+
     private BufferedImage image;
     private BufferedImage compressedImage;
     private List<ImageBlock> blocks;
-    private double error;
+    private double currentError;
+    private double compressCoef;
+    private final int blockWidth;
+    private final int blockHeight;
+    private final int neuronsLength;
+    private final int maxError;
 
-    public ImageCompressor(BufferedImage image) {
+    //todo it's hack
+    private boolean wasFirstIteration;
+
+    public ImageCompressor(BufferedImage image, int blockWidth, int blockHeight, int neuronsLength, int maxError) {
         this.image = image;
+        this.blockWidth = blockWidth;
+        this.blockHeight = blockHeight;
+        this.neuronsLength = neuronsLength;
+        this.maxError = maxError;
 
         setDefaults();
     }
 
     private void setDefaults() {
-        blocks = devideImage(Consts.BLOCK_WIDTH, Consts.BLOCK_HEIGHT);
-        compressedImage = new BufferedImage(image.getWidth(), image.getHeight(), Consts.IMAGE_TYPE);
-        error = 0;
+        blocks = devideImage(blockWidth, blockHeight);
+        compressedImage = new BufferedImage(image.getWidth(), image.getHeight(), TYPE_INT_ARGB_PRE);
+        currentError = 0;
+        wasFirstIteration = false;
+        compressCoef = (double) (blockWidth * blockHeight * 3 * blockWidth * blockHeight) / ((blockWidth * blockHeight * 3 + blockWidth * blockHeight) * neuronsLength + 2);
     }
 
     public boolean canCompress() {
-        //todo should be implemented
-        return false;
+        return this.currentError < this.maxError;
     }
 
     public void compress() {
-        for (ImageBlock block : blocks) {
-            block.compress();
+        ExecutorService executorService = Executors.newFixedThreadPool(MAX_THREAD_LENGTH);
+        for (final ImageBlock block : blocks) {
+            executorService.execute(new Runnable() {
+                public void run() {
+                    block.compress();
+                }
+            });
         }
+        executorService.shutdown();
     }
 
     public BufferedImage getCompressedImage() {
@@ -44,10 +68,14 @@ public class ImageCompressor {
         return this.compressedImage;
     }
 
-    public double getError() {
+    public double getCurrentError() {
         calculateError();
 
-        return error;
+        return currentError;
+    }
+
+    public double getCompressCoef() {
+        return this.compressCoef;
     }
 
     private List<ImageBlock> devideImage(int blockWidth, int blockHeight) {
@@ -55,7 +83,7 @@ public class ImageCompressor {
 
         for (int x = 0; x < image.getWidth(); x += blockWidth) {
             for (int y = 0; y < image.getHeight(); y += blockHeight) {
-                ImageBlock block = new ImageBlock(image.getSubimage(x, y, blockWidth, blockHeight));
+                ImageBlock block = new ImageBlock(image.getSubimage(x, y, blockWidth, blockHeight), neuronsLength);
                 block.setPositionX(x);
                 block.setPositionY(y);
                 blocks.add(block);
@@ -66,7 +94,6 @@ public class ImageCompressor {
     }
 
     private BufferedImage uniteBlocks() {
-
         for (ImageBlock block : blocks) {
             compressedImage.getGraphics().drawImage(block.getSrcImage(), block.getPositionX(), block.getPositionY(), null);
         }
@@ -76,7 +103,7 @@ public class ImageCompressor {
 
     private void calculateError() {
         for(ImageBlock block: blocks) {
-            this.error += block.getError();
+            this.currentError += block.getError();
         }
     }
 

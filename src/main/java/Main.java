@@ -1,5 +1,6 @@
 import config.Consts;
 import model.ImageCompressor;
+import model.ImageCompressorBuilder;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -14,9 +15,8 @@ import java.io.IOException;
 public class Main extends JFrame {
 
     public Main() {
-        setSize(1000, 1000);
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
+        setDefaults();
+
         BufferedImage image = null;
 
         try {
@@ -25,7 +25,14 @@ public class Main extends JFrame {
             e.printStackTrace();
         }
 
-        ImageCompressor imageCompressor = new ImageCompressor(image);
+        ImageCompressor imageCompressor = new ImageCompressorBuilder()
+                .setImage(image)
+                .setBlockWidth(Consts.BLOCK_WIDTH)
+                .setBlockHeight(Consts.BLOCK_HEIGHT)
+                .setNeuronsLength(Consts.NEURON_AMOUNT)
+                .setMaxError(Consts.MAX_ERROR)
+                .build();
+
         JLabel compressedImageLabel = new JLabel();
         JLabel uncompressedImageLabel = new JLabel(new ImageIcon(image));
 
@@ -33,20 +40,29 @@ public class Main extends JFrame {
         add(compressedImageLabel, BorderLayout.EAST);
         setVisible(true);
 
-        for (int i = 0; i < 1000; i++) {
+        int iteration = 1;
+
+        //while (imageCompressor.canCompress()) {
+        for (int i = 0; i < 100; i++) {
             imageCompressor.compress();
-            double error = imageCompressor.getError();
+            double error = imageCompressor.getCurrentError();
+
             compressedImageLabel.setIcon(new ImageIcon(imageCompressor.getCompressedImage()));
-            System.out.println("Iteration: " + i);
+            System.out.println("Iteration: " + iteration++);
             System.out.println("Error: " + error);
+            System.out.println("----------------");
         }
-//        BufferedImage bi = imageCompressor.getCompressedImage();
-//        File file = new File("src/main/resources/saved.png");
-//        try {
-//            ImageIO.write(bi, "png", file);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+
+        double compressCoef = imageCompressor.getCompressCoef();
+
+        System.out.println("Compression finished");
+        System.out.println("Compression coefficient: " + compressCoef);
+    }
+
+    private void setDefaults() {
+        setSize(1000, 1000);
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
     }
 
     public static void main(String [] args) {

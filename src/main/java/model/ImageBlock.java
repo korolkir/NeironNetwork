@@ -1,7 +1,6 @@
 package model;
 
 import Jama.Matrix;
-import config.Consts;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -10,11 +9,13 @@ import java.awt.image.BufferedImage;
  * Created by korolkir on 16.10.16.
  */
 public class ImageBlock {
-
     private BufferedImage srcImage;
 
     //todo should be renamed
     private final int N;
+
+    private static final int IMAGE_COLOR_TYPE_LENGTH = 3;
+    private static final double LEARNING_COEFFICIENT = 0.001;
 
     private Matrix xMatrix;
     private Matrix yMatrix;
@@ -23,19 +24,20 @@ public class ImageBlock {
     private Matrix firstLayerWeightsMatrix;
     private Matrix secondLayerWeightsMatrix;
     private double error;
-
+    private final int neuronsLength;
     private int positionX;
     private int positionY;
 
-    public ImageBlock(BufferedImage src) {
+    public ImageBlock(BufferedImage src, int neuronsLength) {
         this.srcImage = src;
+        this.neuronsLength = neuronsLength;
         this.N = getLength();
 
         preCompressCalculations();
     }
 
     private int getLength() {
-        return srcImage.getWidth() * srcImage.getHeight() * Consts.IMAGE_COLOR_TYPE_LENGTH;
+        return srcImage.getWidth() * srcImage.getHeight() * IMAGE_COLOR_TYPE_LENGTH;
     }
 
     private void preCompressCalculations() {
@@ -53,7 +55,6 @@ public class ImageBlock {
         for (int x = 0; x < imageWidth; x++) {
             for (int y = 0; y < imageHeight; y++) {
                 Color pixelColor = new Color(srcImage.getRGB(x, y));
-                //todo should be refactored
                 rgbMatrix.set(0, k++, encodePixelColor(pixelColor.getRed()));
                 rgbMatrix.set(0, k++, encodePixelColor(pixelColor.getGreen()));
                 rgbMatrix.set(0, k++, encodePixelColor(pixelColor.getBlue()));
@@ -64,10 +65,10 @@ public class ImageBlock {
     }
 
     private Matrix createWeightsMatrix() {
-        Matrix matrix = new Matrix(N, Consts.NEURON_AMOUNT);
+        Matrix matrix = new Matrix(N, neuronsLength);
 
         for ( int i = 0; i < N; i++ ) {
-            for ( int j = 0; j < Consts.NEURON_AMOUNT; j++ ) {
+            for ( int j = 0; j < neuronsLength; j++ ) {
                 matrix.set(i, j, Math.random() * 2 - 1 );
             }
         }
@@ -84,7 +85,6 @@ public class ImageBlock {
     private void calculateWeights() {
         preLayersCalculations();
         calculateLayers();
-        normalizeLayers();
     }
 
     private void preLayersCalculations() {
@@ -118,12 +118,6 @@ public class ImageBlock {
         secondLayerWeightsMatrix = secondLayerWeightsMatrix.minus(temp2);
     }
 
-    //todo should be implemented according formulas
-    private void normalizeLayers() {
-        firstLayerWeightsMatrix.norm1();
-        secondLayerWeightsMatrix.norm1();
-    }
-
     private void decodeImage() {
         int k = 0;
 
@@ -140,7 +134,7 @@ public class ImageBlock {
     private double getLearningCoefficient() {
         //if you have adaptive step you should implement alpha = 1 / ∑ (Y(i))2
 
-        return Consts.LEARNING_COEFFICIENT;
+        return LEARNING_COEFFICIENT;
     }
 
     private void calculateError() {
@@ -176,7 +170,6 @@ public class ImageBlock {
     public BufferedImage getSrcImage() {
         return srcImage;
     }
-
 
     public int getPositionX() {
         return positionX;
