@@ -1,6 +1,6 @@
-import config.Consts;
-import model.ImageBlock;
+package model;
 
+import config.Consts;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,9 +11,18 @@ import java.util.List;
 public class ImageCompressor {
 
     private BufferedImage image;
+    private BufferedImage compressedImage;
+    private List<ImageBlock> blocks;
 
     public ImageCompressor(BufferedImage image) {
         this.image = image;
+
+        setDefaults();
+    }
+
+    private void setDefaults() {
+        blocks = devideImage(Consts.BLOCK_WIDTH, Consts.BLOCK_HEIGHT);
+        compressedImage = new BufferedImage(image.getWidth(), image.getHeight(), Consts.IMAGE_TYPE);
     }
 
     public boolean canCompress() {
@@ -21,17 +30,19 @@ public class ImageCompressor {
         return false;
     }
 
-    public BufferedImage compress() {
-        List<ImageBlock> blocks = devideImage(image, Consts.BLOCK_WIDTH, Consts.BLOCK_HEIGHT);
-
+    public void compress() {
         for (ImageBlock block : blocks) {
             block.compress();
         }
-
-        return unite(blocks);
     }
 
-    public List<ImageBlock> devideImage(BufferedImage image, int blockWidth, int blockHeight) {
+    public BufferedImage getCompressedImage() {
+        uniteBlocks();
+
+        return this.compressedImage;
+    }
+
+    private List<ImageBlock> devideImage(int blockWidth, int blockHeight) {
         List<ImageBlock> blocks = new ArrayList<ImageBlock>();
 
         for (int x = 0; x < image.getWidth(); x += blockWidth) {
@@ -46,16 +57,10 @@ public class ImageCompressor {
         return blocks;
     }
 
-    public BufferedImage unite(List<ImageBlock> blocks) {
-        int blockWidth = Consts.BLOCK_WIDTH;
-        int blockHeight = Consts.BLOCK_HEIGHT;
-        int imageWidth = image.getWidth();
-        int imageHeight = image.getHeight();
-        BufferedImage compressedImage = new BufferedImage(imageWidth, imageHeight, Consts.IMAGE_TYPE);
+    private BufferedImage uniteBlocks() {
 
         for (ImageBlock block : blocks) {
-            int []array = block.getSrcImage().getRGB(0, 0, blockWidth, blockHeight, null, 0, blockWidth);
-            compressedImage.setRGB(block.getPositionX(), block.getPositionY(), blockWidth, blockHeight, array, 0, 1);
+            compressedImage.getGraphics().drawImage(block.getSrcImage(), block.getPositionX(), block.getPositionY(), null);
         }
 
         return compressedImage;
@@ -63,9 +68,5 @@ public class ImageCompressor {
 
     public BufferedImage getImage() {
         return image;
-    }
-
-    public void setImage(BufferedImage image) {
-        this.image = image;
     }
 }

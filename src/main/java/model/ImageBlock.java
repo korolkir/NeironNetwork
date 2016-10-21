@@ -157,7 +157,7 @@ public class ImageBlock {
         return this.error;
     }
 
-    private double encodePixelColor(int value) {
+    private double encodePixelColor(double value) {
         return 2 * value / 255 - 1;
     }
 

@@ -1,4 +1,6 @@
 import config.Consts;
+import model.ImageCompressor;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -32,8 +34,10 @@ public class Main extends JFrame {
         setVisible(true);
 
         //while(imageCompressor.canCompress()) {
-        compressedImageLabel.setIcon(new ImageIcon(imageCompressor.compress()));
-        //}
+        for (int i=0; i<100; i++) {
+            imageCompressor.compress();
+            compressedImageLabel.setIcon(new ImageIcon(imageCompressor.getCompressedImage()));
+        }
     }
 
     public static void main(String [] args) {
