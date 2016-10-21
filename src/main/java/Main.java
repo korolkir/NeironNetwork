@@ -33,11 +33,20 @@ public class Main extends JFrame {
         add(compressedImageLabel, BorderLayout.EAST);
         setVisible(true);
 
-        //while(imageCompressor.canCompress()) {
-        for (int i=0; i<100; i++) {
+        for (int i = 0; i < 1000; i++) {
             imageCompressor.compress();
+            double error = imageCompressor.getError();
             compressedImageLabel.setIcon(new ImageIcon(imageCompressor.getCompressedImage()));
+            System.out.println("Iteration: " + i);
+            System.out.println("Error: " + error);
         }
+//        BufferedImage bi = imageCompressor.getCompressedImage();
+//        File file = new File("src/main/resources/saved.png");
+//        try {
+//            ImageIO.write(bi, "png", file);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     public static void main(String [] args) {

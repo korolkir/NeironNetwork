@@ -13,6 +13,7 @@ public class ImageCompressor {
     private BufferedImage image;
     private BufferedImage compressedImage;
     private List<ImageBlock> blocks;
+    private double error;
 
     public ImageCompressor(BufferedImage image) {
         this.image = image;
@@ -23,6 +24,7 @@ public class ImageCompressor {
     private void setDefaults() {
         blocks = devideImage(Consts.BLOCK_WIDTH, Consts.BLOCK_HEIGHT);
         compressedImage = new BufferedImage(image.getWidth(), image.getHeight(), Consts.IMAGE_TYPE);
+        error = 0;
     }
 
     public boolean canCompress() {
@@ -40,6 +42,12 @@ public class ImageCompressor {
         uniteBlocks();
 
         return this.compressedImage;
+    }
+
+    public double getError() {
+        calculateError();
+
+        return error;
     }
 
     private List<ImageBlock> devideImage(int blockWidth, int blockHeight) {
@@ -64,6 +72,12 @@ public class ImageCompressor {
         }
 
         return compressedImage;
+    }
+
+    private void calculateError() {
+        for(ImageBlock block: blocks) {
+            this.error += block.getError();
+        }
     }
 
     public BufferedImage getImage() {

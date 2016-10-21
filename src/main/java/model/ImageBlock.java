@@ -20,12 +20,12 @@ public class ImageBlock {
     private Matrix yMatrix;
     private Matrix xTransposeMatrix;
     private Matrix deltaXMatrix;
-    private Matrix weightsMatrix;
+    private Matrix firstLayerWeightsMatrix;
     private Matrix secondLayerWeightsMatrix;
     private double error;
 
-    int positionX;
-    int positionY;
+    private int positionX;
+    private int positionY;
 
     public ImageBlock(BufferedImage src) {
         this.srcImage = src;
@@ -40,8 +40,8 @@ public class ImageBlock {
 
     private void preCompressCalculations() {
         xMatrix = encodeImage();
-        weightsMatrix = createWeightsMatrix();
-        secondLayerWeightsMatrix = weightsMatrix.transpose();
+        firstLayerWeightsMatrix = createWeightsMatrix();
+        secondLayerWeightsMatrix = firstLayerWeightsMatrix.transpose();
     }
 
     private Matrix encodeImage() {
@@ -64,10 +64,10 @@ public class ImageBlock {
     }
 
     private Matrix createWeightsMatrix() {
-        Matrix matrix = new Matrix(Consts.NEURON_AMOUNT, N);
+        Matrix matrix = new Matrix(N, Consts.NEURON_AMOUNT);
 
-        for ( int i = 0; i < Consts.NEURON_AMOUNT; i++ ) {
-            for ( int j = 0; j < N; j++ ) {
+        for ( int i = 0; i < N; i++ ) {
+            for ( int j = 0; j < Consts.NEURON_AMOUNT; j++ ) {
                 matrix.set(i, j, Math.random() * 2 - 1 );
             }
         }
@@ -88,8 +88,8 @@ public class ImageBlock {
     }
 
     private void preLayersCalculations() {
-        yMatrix = xMatrix.arrayTimes(weightsMatrix);  //Y(i) = X(i)*W
-        xTransposeMatrix = yMatrix.arrayTimes(secondLayerWeightsMatrix.transpose()); //X`(i) = Y(i)*W` //todo check: secondLayerWeightsMatrix should be  without transpose()
+        yMatrix = xMatrix.times(firstLayerWeightsMatrix);  //Y(i) = X(i)*W
+        xTransposeMatrix = yMatrix.times(secondLayerWeightsMatrix); //X`(i) = Y(i)*W`
         deltaXMatrix = xTransposeMatrix.minus(xMatrix); //∆X(i) = X`(i)–X(i)
     }
 
@@ -102,26 +102,25 @@ public class ImageBlock {
 
     //W(t + 1) = W(t) – alpha*[X(i)]T*∆X(i)*[W`(t)]T
     private void calculateFirstLayer(double alpha) {
-        Matrix tempMatrix = xMatrix.transpose().times(alpha);
-        tempMatrix.timesEquals(alpha);
-        tempMatrix.arrayTimesEquals(deltaXMatrix.transpose()); //todo check: deltaXMatrix should be without transpose()
-        tempMatrix.arrayTimesEquals(secondLayerWeightsMatrix); // todo check: secondLayerWeightsMatrix should be with transpose()
+        Matrix tempMatrix = xMatrix.transpose();
+        tempMatrix = tempMatrix.times(alpha);
+        tempMatrix = tempMatrix.times(deltaXMatrix);
+        tempMatrix = tempMatrix.times(secondLayerWeightsMatrix.transpose());
 
-        weightsMatrix.minusEquals(tempMatrix.transpose()); //todo check tempMatrix should be without transpose()
+        firstLayerWeightsMatrix = firstLayerWeightsMatrix.minus(tempMatrix);
     }
 
     //W`(t + 1) = W`(t) – alpha*[Y(i)]T*∆X(i)
     private void calculateSecondLayer(double alpha) {
         Matrix temp = yMatrix.transpose();
         temp.timesEquals(alpha);
-        temp.arrayTimesEquals(deltaXMatrix.transpose()); //todo check tempMatrix should be without transpose()
-
-        secondLayerWeightsMatrix.minusEquals(temp);
+        Matrix temp2 = temp.times(deltaXMatrix);
+        secondLayerWeightsMatrix = secondLayerWeightsMatrix.minus(temp2);
     }
 
     //todo should be implemented according formulas
     private void normalizeLayers() {
-        weightsMatrix.norm1();
+        firstLayerWeightsMatrix.norm1();
         secondLayerWeightsMatrix.norm1();
     }
 
@@ -130,9 +129,10 @@ public class ImageBlock {
 
         for (int x = 0; x < srcImage.getWidth(); x++) {
             for (int y = 0; y < srcImage.getHeight(); y++) {
-                for (int l = 0; l<3 ; l++, y++) {
-                    srcImage.setRGB(x,y, decodePixelColor(xTransposeMatrix.get(0, k++)));
-                }
+                int r = decodePixelColor(xTransposeMatrix.get(0, k++));
+                int g = decodePixelColor(xTransposeMatrix.get(0, k++));
+                int b = decodePixelColor(xTransposeMatrix.get(0, k++));
+                srcImage.setRGB(x, y, new Color(r,g,b).getRGB());
             }
         }
     }
@@ -164,7 +164,13 @@ public class ImageBlock {
     private int decodePixelColor(double value) {
         int encodedValue  = (int) ((value + 1)  * 255 / 2);
 
-        return encodedValue > 255 ? 255 : encodedValue < 0 ? 0 : encodedValue;
+        if (encodedValue > 255) {
+            return 255;
+        } else if (encodedValue < 0) {
+            return 0;
+        }
+
+        return encodedValue;
     }
 
     public BufferedImage getSrcImage() {
